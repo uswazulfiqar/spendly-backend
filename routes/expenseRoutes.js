@@ -1,55 +1,20 @@
-const express = require("express");
+﻿const express = require("express");
 const Expense = require("../models/Expense");
-const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-// Authentication middleware
-const protect = (req, res, next) => {
+router.get("/", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        message: "Authentication required",
-      });
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    req.userId = decoded.userId;
-
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      message: "Invalid or expired token",
+    const expenses = await Expense.find().sort({
+      date: -1,
     });
-  }
-};
 
-// GET transactions for selected workspace
-router.get("/", protect, async (req, res) => {
-  try {
-    const { workspaceId } = req.query;
-
-    if (!workspaceId) {
-      return res.status(400).json({
-        message: "Workspace ID is required",
-      });
-    }
-
-    const expenses = await Expense.find({
-      workspace: workspaceId,
-    }).sort({ date: -1 });
-
-    res.json(expenses);
+    res.status(200).json(expenses);
   } catch (error) {
-    console.error("Get transactions error:", error);
+    console.error(
+      "Get transactions error:",
+      error
+    );
 
     res.status(500).json({
       message: "Failed to fetch transactions",
@@ -57,27 +22,46 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-// CREATE transaction
-router.post("/", protect, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { workspaceId } = req.body;
+    const {
+      title,
+      amount,
+      category,
+      type,
+      date,
+      note,
+    } = req.body;
 
-    if (!workspaceId) {
+    if (
+      !title ||
+      amount === undefined ||
+      !category
+    ) {
       return res.status(400).json({
-        message: "Workspace ID is required",
+        message:
+          "Title, amount and category are required",
       });
     }
 
     const expense = new Expense({
-      ...req.body,
-      workspace: workspaceId,
+      title: String(title).trim(),
+      amount: Number(amount),
+      category,
+      type: type || "expense",
+      date: date || new Date(),
+      note: note || "",
     });
 
-    const savedExpense = await expense.save();
+    const savedExpense =
+      await expense.save();
 
     res.status(201).json(savedExpense);
   } catch (error) {
-    console.error("Create transaction error:", error);
+    console.error(
+      "Create transaction error:",
+      error
+    );
 
     res.status(400).json({
       message: "Failed to create transaction",
@@ -86,12 +70,12 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
-// DELETE transaction
-router.delete("/:id", protect, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const deletedExpense = await Expense.findByIdAndDelete(
-      req.params.id
-    );
+    const deletedExpense =
+      await Expense.findByIdAndDelete(
+        req.params.id
+      );
 
     if (!deletedExpense) {
       return res.status(404).json({
@@ -99,11 +83,15 @@ router.delete("/:id", protect, async (req, res) => {
       });
     }
 
-    res.json({
-      message: "Transaction deleted successfully",
+    res.status(200).json({
+      message:
+        "Transaction deleted successfully",
     });
   } catch (error) {
-    console.error("Delete transaction error:", error);
+    console.error(
+      "Delete transaction error:",
+      error
+    );
 
     res.status(500).json({
       message: "Failed to delete transaction",

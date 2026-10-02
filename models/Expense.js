@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 
 const expenseSchema = new mongoose.Schema(
   {
@@ -38,7 +38,7 @@ const expenseSchema = new mongoose.Schema(
     workspace: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",
-      required: true,
+      required: false,
     },
   },
   {
@@ -46,4 +46,7 @@ const expenseSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Expense", expenseSchema);
+module.exports = mongoose.model(
+  "Expense",
+  expenseSchema
+);
